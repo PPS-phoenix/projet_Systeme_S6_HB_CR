@@ -6,6 +6,9 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 #if defined(__APPLE__)
 #define HOME "/Users/"
@@ -14,7 +17,6 @@
 #endif
 
 #define HISTORY_FILE ".tpshell_history"
-#define HISTORY_SIZE 500
 
 #define BUFF            1024
 #define PATH_SIZE       1024
@@ -38,24 +40,47 @@ int main(int argc, char *argv[]) {
    char     *temp;   /* */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
+   char		*home;
+   char		*history_file_path;
+   char		*history_buffer;
+   int		history_file_p;
    int      i;       /* */
+   int		c;
+   int		car;
+   FILE		*history_file_d;
+   
 
    buff = (char*) malloc(BUFF);
+   history_buffer = (char*) malloc(BUFF);
    temp = (char*) malloc(BUFF);
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
+   home = (char*) malloc(BUFF);
+   history_file_path = (char*) malloc(BUFF);
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
+   strcpy(home, getenv("HOME"));
 
    getcwd(dir, PATH_SIZE);
+   
+   strcat(history_file_path, home);
+   strcat(history_file_path, "/");
+   strcat(history_file_path, HISTORY_FILE);
 
    while(printf("%s%s%s@%s%s%s%s%s:%s%s%s>%s ", MAGE, login, YELO, RESET, MAGE, host, MAGE, WHIT, CYAN, dir, YELO, WHIT), fgets(buff, BUFF, stdin)) {
       /* Si l'utilisateur n'écrit rien et appuie sur Entrée */
       if(!strcmp(buff, "\n")) {
-         continue;
-      }
+		  continue;
+	  }
+	  
+	  history_file_p = open(history_file_path, O_CREAT, 0600);
+	  close(history_file_p);
+	  
+	  history_file_d = fopen(history_file_path, "a");
+	  fprintf(history_file_d, "%s", buff);
+	  fclose(history_file_d);
 
       /* On supprime le retour à la ligne du buffer */
       buff[strlen(buff)-1] = '\0';
@@ -71,8 +96,7 @@ int main(int argc, char *argv[]) {
       /* gestion de CD */
       if(!strcmp(args[0], "cd")) {
          if(args[1] == NULL || !strcmp(args[1], "~")) { /* gestion du HOME */
-            strcpy(temp, HOME);
-            strcat(temp, login);
+            strcpy(temp, home);
             chdir(temp);
          }
          else {
@@ -87,11 +111,18 @@ int main(int argc, char *argv[]) {
       }
 
       if(!strcmp(args[0], "history")) {
+		  car = 0;
          /* Créer fichier s'il n'existe pas */
-         /* Compter les lignes dans le fichier */
-         /* Si lignes > HISTORY_SIZE, on supprime la première ligne et on ajoute la nouvelle à la fin */
          /* Sinon on ajoute juste à la fin */
-         printf("Historique :\n");
+         history_file_p = open(history_file_path, O_RDONLY);
+         while((c = read(history_file_p, history_buffer, 1)) > 0) {
+			 printf("%s", history_buffer);
+			 if(history_buffer == '\0') {
+				 car++;
+				 printf("%d", car);
+			 }
+		 }
+         close(history_file_p);
          continue;
       }
 
@@ -105,7 +136,7 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
-      if(strcmp(args[0], "copy")) {
+      if(!strcmp(args[0], "copy")) {
          printf("Copy TD1\n");
          continue;
       }
