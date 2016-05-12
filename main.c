@@ -29,6 +29,7 @@
 
 int getnargs(char *buff);
 void getargs(char *buff, char **args);
+void writehistory(char *buff, char *history_file_path);
 
 int main(int argc, char *argv[]) {
    pid_t    pid;     /* pid du processus en cours */
@@ -45,10 +46,10 @@ int main(int argc, char *argv[]) {
    char		*history_buffer;
    int		history_file_p;
    int      i;       /* */
-   int		c;
-   int		car;
+   int		c = 0;
+   char		*car;
    FILE		*history_file_d;
-   
+
 
    buff = (char*) malloc(BUFF);
    history_buffer = (char*) malloc(BUFF);
@@ -57,6 +58,7 @@ int main(int argc, char *argv[]) {
    host = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
+   car = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
 
    gethostname(host, BUFF);
@@ -64,23 +66,22 @@ int main(int argc, char *argv[]) {
    strcpy(home, getenv("HOME"));
 
    getcwd(dir, PATH_SIZE);
-   
+
    strcat(history_file_path, home);
    strcat(history_file_path, "/");
    strcat(history_file_path, HISTORY_FILE);
 
    while(printf("%s%s%s@%s%s%s%s%s:%s%s%s>%s ", MAGE, login, YELO, RESET, MAGE, host, MAGE, WHIT, CYAN, dir, YELO, WHIT), fgets(buff, BUFF, stdin)) {
       /* Si l'utilisateur n'écrit rien et appuie sur Entrée */
+
       if(!strcmp(buff, "\n")) {
-		  continue;
-	  }
-	  
-	  history_file_p = open(history_file_path, O_CREAT, 0600);
-	  close(history_file_p);
-	  
-	  history_file_d = fopen(history_file_path, "a");
-	  fprintf(history_file_d, "%s", buff);
-	  fclose(history_file_d);
+         continue;
+      }
+
+      /* gestion de l'historique */
+      history_file_p = open(history_file_path, O_CREAT, 0600);
+      close(history_file_p);
+      writehistory(buff, history_file_path);
 
       /* On supprime le retour à la ligne du buffer */
       buff[strlen(buff)-1] = '\0';
@@ -111,18 +112,13 @@ int main(int argc, char *argv[]) {
       }
 
       if(!strcmp(args[0], "history")) {
-		  car = 0;
-         /* Créer fichier s'il n'existe pas */
-         /* Sinon on ajoute juste à la fin */
-         history_file_p = open(history_file_path, O_RDONLY);
-         while((c = read(history_file_p, history_buffer, 1)) > 0) {
-			 printf("%s", history_buffer);
-			 if(history_buffer == '\0') {
-				 car++;
-				 printf("%d", car);
-			 }
-		 }
-         close(history_file_p);
+         history_file_d = fopen(history_file_path , "r");
+         while(fgets(car, BUFF, history_file_d)) {
+            c++;
+            printf("%4d    %s", c, car);
+         }
+
+         fclose(history_file_d);
          continue;
       }
 
@@ -144,12 +140,14 @@ int main(int argc, char *argv[]) {
       /* On fork et on lance la commande dans le fils */
       pid = fork();
       if(pid == 0) {
-         if (execvp(args[0], args) < 0) {
+         if (execvp(args[0], args)) {
             printf("%s: command not found\n", args[0]);
          }
          exit(0);
       }
-      waitpid(pid, &status, WUNTRACED | WCONTINUED);
+
+      waitpid(pid, &status, 0);
+
       /* On libère l'esapce occupé par les arguments et le buffer */
       for(i = 0; i < nargs+1; i++) free(args[i]);
       free(args);
@@ -208,4 +206,12 @@ void getargs(char *buff, char **args) {
          i++;
       }
    }
+}
+
+void writehistory(char *buff, char *history_file_path) {
+   FILE *history_file_d;
+
+   history_file_d = fopen(history_file_path, "a");
+   fprintf(history_file_d, "%s", buff);
+   fclose(history_file_d);
 }
