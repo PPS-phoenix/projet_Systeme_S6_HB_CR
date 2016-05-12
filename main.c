@@ -6,6 +6,10 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <utime.h>
+#include <fcntl.h>
 
 #if defined(__APPLE__)
 #define HOME "/Users/"
@@ -38,7 +42,7 @@ int main(int argc, char *argv[]) {
    char     *temp;   /* */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
-   int      i;       /* */
+   int      i,j;       /* */
 
    buff = (char*) malloc(BUFF);
    temp = (char*) malloc(BUFF);
@@ -95,17 +99,103 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
+
+
+
       if(!strcmp(args[0], "touch")) {
-         printf("Create file\n");
+         printf("Touch : modifie la date ou cree un fichier \n");
+
+	 /* on vérifie qu'il y a des arguments */
+	 if(args[1] == NULL)
+	 {
+	    printf("manque d'aguments \n");
+	    return -1;
+	 }
+   
+	 struct stat temp;
+	 struct utimbuf buf;
+	 	 
+	 int checkm = 0, fichier=0;
+
+	 for( i=1 ; i < nargs ; i++)
+	 {
+	    if( strcmp(args[i],"-m") == 0 )
+	    {
+	       /* option "-m" détectée */
+	       checkm = 1;
+	    }
+	 }
+	 
+	 if(checkm == 1)
+	 {
+	 /* option "-m" */
+	       for (j=1 ; j < nargs ; j++)
+	       {
+		  if(strcmp( args[j] , "-m" ) != 0 )
+		  {
+		     /* Création des fichiers si ils n'existent pas */
+		     fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+		     if(fichier != -1)
+		     {
+			printf("Le fichier %s a ete ouvert.\n",args[j]);
+		     }
+		     close(fichier);
+
+
+		     if( stat( args[j], &temp) != 0)
+			return -1;
+
+		     /* on récupère le temps courant */
+		     buf.modtime = time(NULL);
+		     buf.actime = temp.st_atime;
+		     utime(args[j] , &buf);
+
+		  }
+	       }
+	 }
+	 else
+	 {
+	    for (j=1 ; j < nargs ; j++) 
+	    {
+	       /* Création des fichiers si ils n'existent pas */
+	       fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+	       if(fichier != -1)
+	       {
+		  printf("Le fichier %s a ete cree.\n",args[j]);
+	       }
+	       close(fichier);
+
+	       
+	       /* on récupère le temps courant */
+	       buf.modtime = time(NULL);
+	       buf.actime = time(NULL);
+	       utime(args[j] , &buf);
+	    }
+	 }
+	    
+	 
+	    
+
+	 
          continue;
       }
+
+
+
+
+
+
+
+
+
+
 
       if(!strcmp(args[0], "cat")) {
          printf("Cat sur un fichier ou sur stdin\n");
          continue;
       }
 
-      if(strcmp(args[0], "copy")) {
+      if(!strcmp(args[0], "copy")) {
          printf("Copy TD1\n");
          continue;
       }
