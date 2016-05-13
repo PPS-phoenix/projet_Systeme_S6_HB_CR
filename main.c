@@ -7,9 +7,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+
+#include <fcntl.h>
 #include <time.h>
 #include <utime.h>
-#include <fcntl.h>
+
+
 
 #if defined(__APPLE__)
 #define HOME "/Users/"
@@ -18,7 +21,6 @@
 #endif
 
 #define HISTORY_FILE ".tpshell_history"
-#define HISTORY_SIZE 500
 
 #define BUFF            1024
 #define PATH_SIZE       1024
@@ -29,8 +31,12 @@
 #define MAGE  "\x1B[35m"
 #define RESET "\033[0m"
 
+#define true 1
+#define false 0
+
 int getnargs(char *buff);
 void getargs(char *buff, char **args);
+void writehistory(char *buff, char *history_file_path);
 
 int main(int argc, char *argv[]) {
    pid_t    pid;     /* pid du processus en cours */
@@ -39,27 +45,55 @@ int main(int argc, char *argv[]) {
    char     *dir;    /* dossier courant à afficher */
    char     *buff;   /* buffer */
    char     **args;  /* tableau d'arguments */
-   char     *temp;   /* */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
-   int      i,j;       /* */
+   char		*home;
+   char		*history_file_path;
+   char		*history_buffer;
+   int		history_file_p;
+   int		c = 0;
+   char		*car;
+   FILE		*history_file_d;
+
+   int      i,j;
+
+   struct   stat temp;
+   struct   utimbuf buf;
+
+   int      checkm = 0;
+   int      fichier = 0;
+
 
    buff = (char*) malloc(BUFF);
-   temp = (char*) malloc(BUFF);
+   history_buffer = (char*) malloc(BUFF);
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
+   home = (char*) malloc(BUFF);
+   car = (char*) malloc(BUFF);
+   history_file_path = (char*) malloc(BUFF);
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
+   strcpy(home, getenv("HOME"));
 
    getcwd(dir, PATH_SIZE);
 
+   strcat(history_file_path, home);
+   strcat(history_file_path, "/");
+   strcat(history_file_path, HISTORY_FILE);
+
    while(printf("%s%s%s@%s%s%s%s%s:%s%s%s>%s ", MAGE, login, YELO, RESET, MAGE, host, MAGE, WHIT, CYAN, dir, YELO, WHIT), fgets(buff, BUFF, stdin)) {
       /* Si l'utilisateur n'écrit rien et appuie sur Entrée */
+
       if(!strcmp(buff, "\n")) {
          continue;
       }
+
+      /* gestion de l'historique */
+      history_file_p = open(history_file_path, O_CREAT, 0600);
+      close(history_file_p);
+      writehistory(buff, history_file_path);
 
       /* On supprime le retour à la ligne du buffer */
       buff[strlen(buff)-1] = '\0';
@@ -75,9 +109,7 @@ int main(int argc, char *argv[]) {
       /* gestion de CD */
       if(!strcmp(args[0], "cd")) {
          if(args[1] == NULL || !strcmp(args[1], "~")) { /* gestion du HOME */
-            strcpy(temp, HOME);
-            strcat(temp, login);
-            chdir(temp);
+            chdir(home);
          }
          else {
             chdir(args[1]);
@@ -91,104 +123,72 @@ int main(int argc, char *argv[]) {
       }
 
       if(!strcmp(args[0], "history")) {
-         /* Créer fichier s'il n'existe pas */
-         /* Compter les lignes dans le fichier */
-         /* Si lignes > HISTORY_SIZE, on supprime la première ligne et on ajoute la nouvelle à la fin */
-         /* Sinon on ajoute juste à la fin */
-         printf("Historique :\n");
+         history_file_d = fopen(history_file_path , "r");
+         while(fgets(car, BUFF, history_file_d)) {
+            c++;
+            printf("%4d    %s", c, car);
+         }
+
+         fclose(history_file_d);
          continue;
       }
-
-
-
 
       if(!strcmp(args[0], "touch")) {
          printf("Touch : modifie la date ou cree un fichier \n");
 
-	 /* on vérifie qu'il y a des arguments */
-	 if(args[1] == NULL)
-	 {
-	    printf("manque d'aguments \n");
-	    return -1;
-	 }
-   
-	 struct stat temp;
-	 struct utimbuf buf;
-	 	 
-	 int checkm = 0, fichier=0;
+         /* on vérifie qu'il y a des arguments */
+         if(args[1] == NULL) {
+            printf("manque d'aguments \n");
+            return -1;
+         }
 
-	 for( i=1 ; i < nargs ; i++)
-	 {
-	    if( strcmp(args[i],"-m") == 0 )
-	    {
-	       /* option "-m" détectée */
-	       checkm = 1;
-	    }
-	 }
-	 
-	 if(checkm == 1)
-	 {
-	 /* option "-m" */
-	       for (j=1 ; j < nargs ; j++)
-	       {
-		  if(strcmp( args[j] , "-m" ) != 0 )
-		  {
-		     /* Création des fichiers si ils n'existent pas */
-		     fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
-		     if(fichier != -1)
-		     {
-			printf("Le fichier %s a ete ouvert.\n",args[j]);
-		     }
-		     close(fichier);
+         for(i=1 ; i < nargs ; i++) {
+            if( strcmp(args[i], "-m") == 0 ) {
+               /* option "-m" détectée */
+               checkm = true;
+            }
+         }
 
+         if(checkm == 1) {
+            /* option "-m" */
+            for (j=1 ; j < nargs ; j++) {
+               if(strcmp( args[j] , "-m") != 0) {
+                  /* Création des fichiers si ils n'existent pas */
+                  fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+                  if(fichier != -1) {
+                     printf("Le fichier %s a ete ouvert.\n", args[j]);
+                  }
+                  close(fichier);
 
-		     if( stat( args[j], &temp) != 0)
-			return -1;
+                  if(stat(args[j], &temp) != 0) {
+                     return -1;
+                  }
 
-		     /* on récupère le temps courant */
-		     buf.modtime = time(NULL);
-		     buf.actime = temp.st_atime;
-		     utime(args[j] , &buf);
+                  /* on récupère le temps courant */
+                  buf.modtime = time(NULL);
+                  buf.actime = temp.st_atime;
+                  utime(args[j], &buf);
+               }
+            }
+         }
+         else {
+            for (j=1 ; j < nargs ; j++) {
+               /* Création des fichiers si ils n'existent pas */
+               fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+               if(fichier != -1) {
+                  printf("Le fichier %s a ete cree.\n", args[j]);
+               }
+               close(fichier);
 
-		  }
-	       }
-	 }
-	 else
-	 {
-	    for (j=1 ; j < nargs ; j++) 
-	    {
-	       /* Création des fichiers si ils n'existent pas */
-	       fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
-	       if(fichier != -1)
-	       {
-		  printf("Le fichier %s a ete cree.\n",args[j]);
-	       }
-	       close(fichier);
+               /* on récupère le temps courant */
+               buf.modtime = time(NULL);
+               buf.actime = time(NULL);
+               utime(args[j], &buf);
+            }
+         }
 
-	       
-	       /* on récupère le temps courant */
-	       buf.modtime = time(NULL);
-	       buf.actime = time(NULL);
-	       utime(args[j] , &buf);
-	    }
-	 }
-	    
-	 
-	    
-
-	 
          continue;
       }
-
-
-
-
-
-
-
-
-
-
 
       if(!strcmp(args[0], "cat")) {
          printf("Cat sur un fichier ou sur stdin\n");
@@ -203,12 +203,14 @@ int main(int argc, char *argv[]) {
       /* On fork et on lance la commande dans le fils */
       pid = fork();
       if(pid == 0) {
-         if (execvp(args[0], args) < 0) {
+         if (execvp(args[0], args)) {
             printf("%s: command not found\n", args[0]);
          }
          exit(0);
       }
-      waitpid(pid, &status, WUNTRACED | WCONTINUED);
+
+      waitpid(pid, &status, 0);
+
       /* On libère l'esapce occupé par les arguments et le buffer */
       for(i = 0; i < nargs+1; i++) free(args[i]);
       free(args);
@@ -267,4 +269,12 @@ void getargs(char *buff, char **args) {
          i++;
       }
    }
+}
+
+void writehistory(char *buff, char *history_file_path) {
+   FILE *history_file_d;
+
+   history_file_d = fopen(history_file_path, "a");
+   fprintf(history_file_d, "%s", buff);
+   fclose(history_file_d);
 }
