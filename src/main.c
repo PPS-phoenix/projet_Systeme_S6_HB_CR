@@ -37,6 +37,7 @@
 int getnargs(char *buff);
 void getargs(char *buff, char **args);
 void writehistory(char *buff, char *history_file_path);
+void replacechar(char *src, char *dst, char c, char r);
 
 int main(int argc, char *argv[]) {
    pid_t    pid;     /* pid du processus en cours */
@@ -47,6 +48,8 @@ int main(int argc, char *argv[]) {
    char     **args;  /* tableau d'arguments */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
+   char     *path;
+   char     *path_clean;
    char		*home;
    char		*history_file_path;
    char		*history_buffer;
@@ -69,6 +72,8 @@ int main(int argc, char *argv[]) {
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
+   path_clean = (char*) malloc(BUFF);
+   path = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
    car = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
@@ -76,6 +81,7 @@ int main(int argc, char *argv[]) {
    gethostname(host, BUFF);
    strcpy(login, getlogin());
    strcpy(home, getenv("HOME"));
+   strcpy(path, getenv("PATH"));
 
    getcwd(dir, PATH_SIZE);
 
@@ -120,6 +126,12 @@ int main(int argc, char *argv[]) {
 
       if(!strcmp(args[0], "exit")) {
          exit(0);
+      }
+
+      if(!strcmp(args[0], "path")) {
+         replacechar(path, path_clean, ':', '\n');
+         printf("PATH : \n%s\n", path_clean);
+         continue;
       }
 
       if(!strcmp(args[0], "history")) {
@@ -277,4 +289,17 @@ void writehistory(char *buff, char *history_file_path) {
    history_file_d = fopen(history_file_path, "a");
    fprintf(history_file_d, "%s", buff);
    fclose(history_file_d);
+}
+
+void replacechar(char *src, char *dst, char c, char r) {
+   int i;
+
+   for(i = 0; i < strlen(src) ; i++) {
+      if(src[i] == c) {
+         dst[i] = r;
+      }
+      else {
+         dst[i] = src[i];
+      }
+   }
 }
