@@ -139,11 +139,11 @@ int main(int argc, char *argv[]) {
          /* on vérifie qu'il y a des arguments */
          if(args[1] == NULL) {
             printf("manque d'aguments \n");
-            return -1;
+            continue;
          }
 
          for(i=1 ; i < nargs ; i++) {
-            if( strcmp(args[i], "-m") == 0 ) {
+            if(strcmp(args[i], "-m") == 0) {
                /* option "-m" détectée */
                checkm = true;
             }
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
                   close(fichier);
 
                   if(stat(args[j], &temp) != 0) {
-                     return -1;
+                     continue;
                   }
 
                   /* on récupère le temps courant */
