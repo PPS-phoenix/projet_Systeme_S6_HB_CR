@@ -20,29 +20,33 @@
 #define HOME "/home/"
 #endif
 
-#define HISTORY_FILE ".tpshell_history"
+#define HISTORY_FILE    ".tpshell_history"
 
 #define BUFF            1024
 #define PATH_SIZE       1024
 #define MAX_ARGS_SIZE   512
-#define CYAN  "\033[1m\033[36m"
-#define YELO  "\033[1m\033[33m"
-#define WHIT  "\x1B[0m"
-#define MAGE  "\x1B[35m"
-#define RESET "\033[0m"
+#define CYAN            "\033[1m\033[36m"
+#define YELO            "\033[1m\033[33m"
+#define WHIT            "\x1B[0m"
+#define MAGE            "\x1B[35m"
+#define RESET           "\033[0m"
 
-#define true 1
-#define false 0
+#define true            1
+#define false           0
 
 int getnargs(char *buff);
 void getargs(char *buff, char **args);
 void writehistory(char *buff, char *history_file_path);
 void replacechar(char *src, char *dst, char c, char r);
+void getpaths(char *path, char **paths);
+int getnpaths(char *path);
+void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths);
 
 int main(int argc, char *argv[]) {
    pid_t    pid;     /* pid du processus en cours */
    int      status;  /* statut du processus */
    int      nargs;   /* nombre d'aguments */
+   int      npaths;
    char     *dir;    /* dossier courant à afficher */
    char     *buff;   /* buffer */
    char     **args;  /* tableau d'arguments */
@@ -50,13 +54,15 @@ int main(int argc, char *argv[]) {
    char     *login;  /* nom d'utilisateur */
    char     *path;
    char     *path_clean;
-   char		*home;
-   char		*history_file_path;
-   char		*history_buffer;
-   int		history_file_p;
-   int		c = 0;
-   char		*car;
-   FILE		*history_file_d;
+   char     **paths_exe;
+   char     **paths;
+   char     *home;
+   char     *history_file_path;
+   char     *history_buffer;
+   int      history_file_p;
+   int      c = 0;
+   char     *car;
+   FILE     *history_file_d;
 
    int      i,j;
 
@@ -126,12 +132,6 @@ int main(int argc, char *argv[]) {
 
       if(!strcmp(args[0], "exit")) {
          exit(0);
-      }
-
-      if(!strcmp(args[0], "path")) {
-         replacechar(path, path_clean, ':', '\n');
-         printf("PATH : \n%s\n", path_clean);
-         continue;
       }
 
       if(!strcmp(args[0], "history")) {
@@ -212,12 +212,28 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
+      /* Gestion du PATH */
+
+      npaths = getnpaths(path);
+
+      paths = (char**) malloc((npaths+1)*sizeof(char*));
+      for(i = 0; i < npaths+1; i++) paths[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+      getpaths(path, paths);
+
+      paths_exe = (char**) malloc((npaths+1)*sizeof(char*));
+      for(i = 0; i < npaths+1; i++) paths_exe[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+      getexepaths(args[0], paths_exe, paths, npaths);
+
       /* On fork et on lance la commande dans le fils */
       pid = fork();
       if(pid == 0) {
-         if (execvp(args[0], args)) {
-            printf("%s: command not found\n", args[0]);
+         for(i = 0; i < npaths; i++) {
+            printf("[%d] Try : %s\n", i, paths_exe[i]);
+            if (execv(paths_exe[i], args)) {
+               printf("%s: failed. Path or command not found\n", paths_exe[i]);
+            }
          }
+
          exit(0);
       }
 
@@ -228,7 +244,6 @@ int main(int argc, char *argv[]) {
       free(args);
       free(buff);
       buff = (char*) malloc (BUFF);
-
    }
    return -1;
 }
@@ -289,6 +304,46 @@ void writehistory(char *buff, char *history_file_path) {
    history_file_d = fopen(history_file_path, "a");
    fprintf(history_file_d, "%s", buff);
    fclose(history_file_d);
+}
+
+int getnpaths(char *path) {
+   int i;
+   int paths = 0;
+
+   for(i = 0; i < strlen(path) ; i++) {
+      if(path[i] == ':') {
+         paths++;
+      }
+   }
+
+   return paths;
+}
+
+void getpaths(char *path, char **paths) {
+   int i;
+   int j = 0;
+   int p = 0;
+
+   for(i = 0; i < strlen(path) ; i++) {
+      if(path[i] == ':') {
+         p++;
+         j = 0;
+      }
+      else {
+         paths[p][j] = path[i];
+         j++;
+      }
+   }
+}
+
+void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths) {
+   int i;
+
+   for(i = 0; i < npaths; i++) {
+      strcpy(paths_exe[i], paths[i]);
+      strcat(paths_exe[i], "/");
+      strcat(paths_exe[i], cmd);
+   }
 }
 
 void replacechar(char *src, char *dst, char c, char r) {
