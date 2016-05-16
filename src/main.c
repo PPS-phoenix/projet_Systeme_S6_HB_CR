@@ -60,7 +60,8 @@ int main(int argc, char *argv[]) {
    char     *history_file_path;
    char     *history_buffer;
    int      history_file_p;
-   int      c = 0;
+   char	    line[BUFF];    /* tableau de caracteres */
+   int      c = 0, count = 0;
    char     *car;
    FILE     *history_file_d;
 
@@ -69,9 +70,8 @@ int main(int argc, char *argv[]) {
    struct   stat temp;
    struct   utimbuf buf;
 
-   int      checkm = 0;
+   int      checkM = 0, checkN = 0;
    int      fichier = 0;
-
 
    buff = (char*) malloc(BUFF);
    history_buffer = (char*) malloc(BUFF);
@@ -83,6 +83,10 @@ int main(int argc, char *argv[]) {
    home = (char*) malloc(BUFF);
    car = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
+
+
+
+
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
@@ -145,67 +149,172 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
+
       if(!strcmp(args[0], "touch")) {
          printf("Touch : modifie la date ou cree un fichier \n");
 
-         /* on vérifie qu'il y a des arguments */
-         if(args[1] == NULL) {
-            printf("manque d'aguments \n");
-            continue;
-         }
+	 /* on vérifie qu'il y a des arguments */
+	 if(args[1] == NULL)
+	 {
+	    printf("manque d'arguments \n");
+	    return -1;
+	 }
 
-         for(i=1 ; i < nargs ; i++) {
-            if(strcmp(args[i], "-m") == 0) {
-               /* option "-m" détectée */
-               checkm = true;
-            }
-         }
+	 for( i=1 ; i < nargs ; i++)
+	 {
+	    if( strcmp(args[i],"-m") == 0 )
+	    {
+	       /* option "-m" détectée */
+	       checkM = 1;
+	    }
+	 }
+	 
+	 if(checkM == 1)
+	 {
+	 /* option "-m" detectée */
+	       for (j=1 ; j < nargs ; j++)
+	       {
+		  if(strcmp( args[j] , "-m" ) != 0 )
+		  {
+		     /* Création des fichiers si ils n'existent pas */
+		     fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+		     if(fichier != -1)
+		     {
+			printf("Le fichier %s a ete ouvert.\n",args[j]);
+		     }
+		     close(fichier);
 
-         if(checkm == 1) {
-            /* option "-m" */
-            for (j=1 ; j < nargs ; j++) {
-               if(strcmp( args[j] , "-m") != 0) {
-                  /* Création des fichiers si ils n'existent pas */
-                  fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
-                  if(fichier != -1) {
-                     printf("Le fichier %s a ete ouvert.\n", args[j]);
-                  }
-                  close(fichier);
 
-                  if(stat(args[j], &temp) != 0) {
-                     continue;
-                  }
+		     if( stat( args[j], &infos) != 0)
+			return -1;
 
-                  /* on récupère le temps courant */
-                  buf.modtime = time(NULL);
-                  buf.actime = temp.st_atime;
-                  utime(args[j], &buf);
-               }
-            }
-         }
-         else {
-            for (j=1 ; j < nargs ; j++) {
-               /* Création des fichiers si ils n'existent pas */
-               fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
-               if(fichier != -1) {
-                  printf("Le fichier %s a ete cree.\n", args[j]);
-               }
-               close(fichier);
+		     /* on récupère le temps courant */
+		     buf.modtime = time(NULL);
+		     buf.actime = infos.st_atime;
+		     utime(args[j] , &buf);
+		  }
+	       }
+	 }
+	 else
+	 {
+	    for (j=1 ; j < nargs ; j++) 
+	    {
+	       /* Création des fichiers si ils n'existent pas */
+	       fichier = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+	       if(fichier != -1)
+	       {
+		  printf("Le fichier %s a ete cree.\n",args[j]);
+	       }
+	       close(fichier);
 
-               /* on récupère le temps courant */
-               buf.modtime = time(NULL);
-               buf.actime = time(NULL);
-               utime(args[j], &buf);
-            }
-         }
-
+	       
+	       /* on récupère le temps courant */
+	       buf.modtime = time(NULL);
+	       buf.actime = time(NULL);
+	       utime(args[j] , &buf);
+	    }
+	 }	    
          continue;
       }
+
 
       if(!strcmp(args[0], "cat")) {
          printf("Cat sur un fichier ou sur stdin\n");
+
+	 
+	 /* cat sur stdin */
+	 if(nargs == 1)
+	 {
+	    while(fgets(buff,BUFF,stdin)) 
+	    {
+	      printf("%s\n",buff); 
+	    }
+	 }
+	 else
+	 {
+	    /* cat sur des fichiers */
+
+	    for(j=1 ; j < nargs ; j++)
+	    {
+	       /* Si l'option -n est activee */
+	       if(strcmp(args[j] ,"-n") == 0 || strcmp( args[j],"--number") == 0)
+	       {  
+		  checkN = 1;
+	       }
+	    }
+	    
+	    /* l'option -n est présente */
+	    if(checkN == 1)
+	    {
+	       count = 1;
+	       for( j=1 ; j < nargs ; j++)
+	       {
+		  /* on ne traite pas l'option en tant que fichier */
+		  if( strcmp(args[j] ,"-n") != 0 &&  strcmp( args[j],"--number") != 0)
+		  {
+		     /* on lit ligne par ligne pour pouvoir ajouter au début le numéro de ligne **/
+		     file = fopen(args[j], "r");
+		     if(file  != NULL )
+		     {
+			/* On écrit lit le fichier ligne par ligne */	
+			while( fgets ( line, sizeof line, file) != NULL )
+			{
+			   printf("\t %d\t%s",count,line);
+			   count++;
+			}
+			fclose(file);
+		     }
+		     else
+		     {
+			/* n'affichera que des erreurs disant que le fichier n'existe pas */
+			perror(args[j]);
+		     }
+		  }
+	       }
+	    }
+	    else
+	    {
+	       /* l'option -n n'est pas présente */
+	       for( j=1 ; j < nargs ; j++)
+	       {
+
+		  /* on vérifie que le fichier n'est pas un répertoire */
+		  stat(args[j], &infos);
+		  if(S_ISDIR(infos.st_mode))
+		  {
+		     /* il s'agit d'un répertoire et on ne cat pas un répertoire ! */ 
+			printf("cat : %s: Is a directory\n",args[j]);
+
+		  }
+		  else
+		  {
+		     /* il ne s'agit pas d'un répertoire */ 
+		     fichier=open(args[j], O_RDONLY);
+		     
+		     /* on vérifie si le fichier existe */
+		     if(fichier != -1)
+		     {
+			/* tant qu'il reste des choses à écrire */
+			while(( encore = read(fichier, buff, BUFF)) > 0)
+			{
+			   write(STDIN_FILENO, buff, BUFF);
+		     	}
+			close(fichier);
+		     }
+		     else
+		     {
+			/* il ne s'agit pas d'un fichier */
+			printf("cat : %s : No such file\n",args[j]);
+		     }
+
+		  }
+	       }
+	    }
+	 }
          continue;
       }
+
+
 
       if(!strcmp(args[0], "copy")) {
          printf("Copy TD1\n");
@@ -358,3 +467,5 @@ void replacechar(char *src, char *dst, char c, char r) {
       }
    }
 }
+
+
