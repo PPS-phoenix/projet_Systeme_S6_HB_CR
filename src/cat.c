@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
+#include "cat.h"
 #define BUFF 1024
 
 void cat(char **args, char *buff, int nargs)
