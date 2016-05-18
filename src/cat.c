@@ -1,8 +1,24 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <fcntl.h>
+#define BUFF 1024
+
 void cat(char **args, char *buff, int nargs)
 {
+   int j, checkN = 0, count = 0, intfile = 0;
+   FILE *file;
+   char	    line[BUFF];    /* tableau de caracteres */
+   struct   stat infos;
 
 
- /* cat sur stdin */
+
+	 /* cat sur stdin */
 	 if(nargs == 1)
 	 {
 	    while(fgets(buff,BUFF,stdin)) 
@@ -69,17 +85,17 @@ void cat(char **args, char *buff, int nargs)
 		  else
 		  {
 		     /* il ne s'agit pas d'un répertoire */ 
-		     fichier=open(args[j], O_RDONLY);
+		     intfile=open(args[j], O_RDONLY);
 		     
 		     /* on vérifie si le fichier existe */
-		     if(fichier != -1)
+		     if(intfile != -1)
 		     {
 			/* tant qu'il reste des choses à écrire */
-			while(( encore = read(fichier, buff, BUFF)) > 0)
+			while((read(intfile, buff, BUFF)) > 0)
 			{
 			   write(STDIN_FILENO, buff, BUFF);
 		     	}
-			close(fichier);
+			close(intfile);
 		     }
 		     else
 		     {
