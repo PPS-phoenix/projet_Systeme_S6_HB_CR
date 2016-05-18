@@ -46,31 +46,66 @@ void pipe(){
    }
 
    /* premiere commande, avant le premier pipe*/
-   dup2(pipes[i], 1);
+   if((dup2(pipes[i], 1)) == -1)
+   {
+      perror("dup2 failed");
+      exit(EXIT_FAILURE);	 
+   }
+   
    execute(command[0]);
-   close(pipes[i]);
+   /* On ferme tous les pipes */
+   for(j=0; j < (npipe*2) ; j++)
+   {
+      close(pipes[i]);
+   }
 
    for(i = 1 ; i < (npipe*2) ; i=i+2)
    { 
-	 /* dernier pipe / derniere commande */
-	 /* read only */
+	 /* derniere commande */
+	 /* on ne fait que lire sur la commande précédente */
 	 if(i == npipe-1)
 	 {
-	    dup2(pipes[i-1],0); 
+	    if((dup2(pipes[i-1],0) == -1))
+	    {
+	       perror("dup2 failed");
+	       exit(EXIT_FAILURE);
+	    }
+	       
+
 	    execute(command[j]);
-	    close(pipes[i-1]);
+
+	    /* On ferme tous les pipes */
+	    for(j=0; j < (npipe*2) ; j++)
+	    {
+	       close(pipes[i]);
+	    }
 	 }
 	 else
 	 {
 	    /* entre la premiere et dernière commande */
-	    /* read and write */
-	    dup2(pipes[i-1],O);
-	    dup2(pipes[i+2],1);
+	    /* on lit sur la précédente et écrit sur la suivante */
+	    if((dup2(pipes[i-1],O)) == -1)
+	    {
+	       perror("dup2 failed");
+	       exit(EXIT_FAILURE);
+	    }
+
+
+	    if((dup2(pipes[i+2],1)) == -1)
+	    {
+	       perror("dup2 failed");
+	       exit(EXIT_FAILURE);
+	    }
+
+
 	    execute(command[j]);
-	    close(pipes[i-1]);
-	    close(pipes[i+2]);
+
+	    /* On ferme tous les pipes */
+	    for(j=0; j < (npipe*2) ; j++)
+	    {
+	       close(pipes[i]);
+	    }
 	 }
       j++;
    }
-
-}
+   }
