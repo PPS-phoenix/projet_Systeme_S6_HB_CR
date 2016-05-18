@@ -14,6 +14,8 @@
 #include <utime.h>
 #include "touch.h"
 #include "cat.h"
+#include "parsing.h"
+
 
 
 #if defined(__APPLE__)
@@ -36,13 +38,7 @@
 #define true            1
 #define false           0
 
-int getnargs(char *buff);
-void getargs(char *buff, char **args);
-void writehistory(char *buff, char *history_file_path);
-void replacechar(char *src, char *dst, char c, char r);
-void getpaths(char *path, char **paths);
-int getnpaths(char *path);
-void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths);
+
 
 int main(int argc, char *argv[]) {
    pid_t    pid;     /* pid du processus en cours */
@@ -140,12 +136,9 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
-
+      /* Gestion de Touch */
       if(!strcmp(args[0], "touch")) {
-
-	 if(touch(args,nargs) == -1)
-	    return -1;
-	    
+	 touch(args,nargs);
          continue;
       }
 
@@ -199,114 +192,6 @@ int main(int argc, char *argv[]) {
 }
 
 
-/* getnargs : compte le nombre d'argument dans buff, en se basant sur le nombre d'espaces *
- * Entrée : une chaine de caractères buff
- * Sortie : un entier */
-int getnargs(char *buff) {
-   int i = 0;
-   int nargs = 0;
-   char c;
-   while((c = buff[i]) == ' ') {
-      i++;
-   }
-   while((c = buff[i]) != '\0') {
-      if(c == ' ' && i != 0) {
-         nargs++;
-         while((c = buff[i] == ' ')) {
-            i++;
-         }
-      }
-      else {
-         i++;
-      }
-   }
-   return nargs+1;
-}
 
-void getargs(char *buff, char **args) {
-   int i = 0;
-   int k = 0;
-   int j = 0;
-   char c;
-   while((c = buff[i]) == ' ') {
-      i++;
-   }
-   while((c = buff[i]) != '\0') {
-      if(c == ' ') {
-         k = 0;
-         while((c = buff[i]) == ' ') {
-            i++;
-         }
-         j++;
-      }
-      else {
-         args[j][k] = buff[i];
-         args[j][k+1] = '\0';
-         k++;
-         i++;
-      }
-   }
-}
-
-void writehistory(char *buff, char *history_file_path) {
-   FILE *history_file_d;
-
-   history_file_d = fopen(history_file_path, "a");
-   fprintf(history_file_d, "%s", buff);
-   fclose(history_file_d);
-}
-
-int getnpaths(char *path) {
-   int i;
-   int paths = 0;
-
-   for(i = 0; i < strlen(path) ; i++) {
-      if(path[i] == ':') {
-         paths++;
-      }
-   }
-
-   return paths;
-}
-
-void getpaths(char *path, char **paths) {
-   int i;
-   int j = 0;
-   int p = 0;
-
-   for(i = 0; i < strlen(path) ; i++) {
-      if(path[i] == ':') {
-         p++;
-         j = 0;
-      }
-      else {
-         paths[p][j] = path[i];
-         j++;
-      }
-   }
-}
-
-void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths) {
-   int i;
-
-   for(i = 0; i < npaths; i++) {
-      strcpy(paths_exe[i], paths[i]);
-      strcat(paths_exe[i], "/");
-      strcat(paths_exe[i], cmd);
-   }
-}
-
-void replacechar(char *src, char *dst, char c, char r) {
-   int i;
-
-   for(i = 0; i < strlen(src) ; i++) {
-      if(src[i] == c) {
-         dst[i] = r;
-      }
-      else {
-         dst[i] = src[i];
-      }
-   }
-}
 
 

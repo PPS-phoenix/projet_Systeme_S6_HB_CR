@@ -13,7 +13,7 @@
 
 
 
-int touch(char **args, int nargs)
+void touch(char **args, int nargs)
 {
 	 int checkM = 0, file = 0, i = 0, j = 0;
 	 struct   stat infos;
@@ -24,7 +24,7 @@ int touch(char **args, int nargs)
 	 if(nargs == 1)
 	 {
 	    printf("manque d'arguments \n");
-	    return -1;
+	    exit(EXIT_FAILURE);
 	 }
 
 	 for( i=1 ; i < nargs ; i++)
@@ -38,7 +38,13 @@ int touch(char **args, int nargs)
 	 
 	 if(checkM == 1)
 	 {
-	 /* option "-m" detectée */
+	    if(nargs == 2)
+	    {
+	       printf("Il n'y a pas assez d'arguments. Il manque des fichiers.\n");
+	    }
+	    else
+	    {
+	       /* option "-m" detectée */
 	       for (j=1 ; j < nargs ; j++)
 	       {
 		  if(strcmp( args[j] , "-m" ) != 0 )
@@ -53,7 +59,7 @@ int touch(char **args, int nargs)
 
 
 		     if( stat( args[j], &infos) != 0)
-			return -1;
+			exit(EXIT_FAILURE);
 
 		     /* on récupère le temps courant */
 		     buf.modtime = time(NULL);
@@ -61,7 +67,8 @@ int touch(char **args, int nargs)
 		     utime(args[j] , &buf);
 		  }
 	       }
-	       return 1;
+	    }
+
 	 }
 	 else
 	 {
@@ -81,6 +88,5 @@ int touch(char **args, int nargs)
 	       buf.actime = time(NULL);
 	       utime(args[j] , &buf);
 	    }
-	    return 1;
 	 }
 }

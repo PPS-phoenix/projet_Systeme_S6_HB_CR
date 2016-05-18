@@ -16,8 +16,10 @@
 
 /* Fonction : touch
  * Entrées : une commande (chaine d'args), le nombre d'arguments 
- * Sortie : si erreur : retourne -1 sinon retourne 1
+ * Sortie : ---
  * Reproduit la commande touch avec l'option -m
  */
 
-int touch(char **args, int nargs);
+void touch(char **args, int nargs);
+
+#endif

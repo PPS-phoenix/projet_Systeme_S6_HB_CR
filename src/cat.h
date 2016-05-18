@@ -9,3 +9,5 @@
  */
 
 void cat(char **args, char *buff, int nargs);
+
+#endif
