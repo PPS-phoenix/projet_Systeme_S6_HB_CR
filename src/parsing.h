@@ -18,5 +18,7 @@ int getnpaths(char *path);
 
 void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths);
 
+int getnpipe(char *buff);
 
+void getcommand(char *buff, char ***command);
 #endif

@@ -10,11 +10,13 @@
 #include "cat.h"
 #define BUFF 1024
 
-void cat(char **args, char *buff, int nargs)
+void cat(char **args, int nargs)
 {
    int j, checkN = 0, count = 0, intfile = 0;
    FILE *file;
    char	    line[BUFF];    /* tableau de caracteres */
+   char *buff;
+   buff=(char*) malloc(BUFF);
    struct   stat infos;
 
 

@@ -12,10 +12,9 @@
 #include <fcntl.h>
 #include <time.h>
 #include <utime.h>
-#include "touch.h"
-#include "cat.h"
 #include "parsing.h"
-
+#include "pipe.h"
+#include "execute.h"
 
 
 #if defined(__APPLE__)
@@ -41,44 +40,33 @@
 
 
 int main(int argc, char *argv[]) {
-   pid_t    pid;     /* pid du processus en cours */
-   int      status;  /* statut du processus */
-   int      nargs;   /* nombre d'aguments */
-   int      npaths;
+   int      nargs; /* nombre d'aguments */
    char     *dir;    /* dossier courant à afficher */
    char     *buff;   /* buffer */
    char     **args;  /* tableau d'arguments */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
-   char     *path;
-   char     **paths_exe;
-   char     **paths;
+   char	    ***command;
+
    char     *home;
    char     *history_file_path;
    int      history_file_p;
-   char     *car;
-   FILE     *history_file_d;
+   int	    npipe;
 
-   int      i, c = 0;
+   int      i,j;
 
    
    buff = (char*) malloc(BUFF);
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
-   path = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
-   car = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
-
-
-
 
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
    strcpy(home, getenv("HOME"));
-   strcpy(path, getenv("PATH"));
 
    getcwd(dir, PATH_SIZE);
 
@@ -109,80 +97,34 @@ int main(int argc, char *argv[]) {
       getargs(buff, args);
       args[nargs] = NULL;
 
-      /* gestion de CD */
-      if(!strcmp(args[0], "cd")) {
-         if(args[1] == NULL || !strcmp(args[1], "~")) { /* gestion du HOME */
-            chdir(home);
-         }
-         else {
-            chdir(args[1]);
-         }
-         getcwd(dir, PATH_SIZE); /* On met à jour le répertoire courant à afficher */
-         continue;
+      /* Allocation mémoire du tableau commande */
+      command = (char***) malloc((nargs)*sizeof(char**));
+      for(i=0 ; i < nargs ;  i++)
+      {
+	 command[i] = (char**) malloc (BUFF*sizeof(char*));
+	 for(j = 0;  j < nargs  ; j++)
+	 {
+	    command[i][j] = (char*) malloc(BUFF*sizeof(char));
+	 }
       }
+      
+      npipe = getnpipe(buff);
+      printf("DEBUG : nbPipe = %d",npipe);
+      getcommand(buff,command);
 
-      if(!strcmp(args[0], "exit")) {
-         exit(0);
+      if(npipe > 0){
+	 execPipe(command, npipe, nargs, history_file_path, dir);
+	 continue;
       }
-
-      if(!strcmp(args[0], "history")) {
-         history_file_d = fopen(history_file_path , "r");
-         while(fgets(car, BUFF, history_file_d)) {
-            c++;
-            printf("%4d    %s", c, car);
-         }
-
-         fclose(history_file_d);
-         continue;
-      }
-
-      /* Gestion de Touch */
-      if(!strcmp(args[0], "touch")) {
-	 touch(args,nargs);
-         continue;
+      else
+      {
+	 if(execute(args,nargs,history_file_path, dir)){
+	    continue;
+	 }
       }
 
 
-      if(!strcmp(args[0], "cat")) {
-	 cat(args,buff,nargs);
-         continue;
-      }
-
-
-
-      if(!strcmp(args[0], "copy")) {
-         printf("Copy TD1\n");
-         continue;
-      }
-
-      /* Gestion du PATH */
-
-      npaths = getnpaths(path);
-
-      paths = (char**) malloc((npaths+1)*sizeof(char*));
-      for(i = 0; i < npaths+1; i++) paths[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
-      getpaths(path, paths);
-
-      paths_exe = (char**) malloc((npaths+1)*sizeof(char*));
-      for(i = 0; i < npaths+1; i++) paths_exe[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
-      getexepaths(args[0], paths_exe, paths, npaths);
-
-      /* On fork et on lance la commande dans le fils */
-      pid = fork();
-      if(pid == 0) {
-         for(i = 0; i < npaths; i++) {
-            printf("[%d] Try : %s\n", i, paths_exe[i]);
-            if (execv(paths_exe[i], args)) {
-               printf("%s: failed. Path or command not found\n", paths_exe[i]);
-            }
-         }
-
-         exit(0);
-      }
-
-      waitpid(pid, &status, 0);
-
-      /* On libère l'esapce occupé par les arguments et le buffer */
+      /* On libère l'espace occupé par les arguments et le buffer */
       for(i = 0; i < nargs+1; i++) free(args[i]);
       free(args);
       free(buff);
@@ -190,8 +132,3 @@ int main(int argc, char *argv[]) {
    }
    return -1;
 }
-
-
-
-
-

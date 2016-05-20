@@ -58,26 +58,37 @@ void getargs(char *buff, char **args) {
    }
 }
 
-int  getcommand(char **args, char ***command){
+int getnpipe(char *buff){
    
-   int i=0, j=0, npipe=0, k=0;
-
-   while(args[i] != NULL)
+   int  npipe=0, i=0;
+   while(buff[i] != '\0') 
    {
-      if((strcmp(args[i],"|")) == 0)
+      if(buff[i] == '|')
       {
-	 i++;
-	 j++;
 	 npipe++;
-	 k=0;
-
       }
-      strcpy(command[j][k],args[i]);
-      k++;
       i++;
    }
-
    return npipe;
+}
+
+void getcommand(char *buff, char ***command){
+   
+   int i=0;
+   const char s[2] = "|";
+
+   char *temp;
+   temp = strtok(buff,s);
+
+   while(temp != NULL)
+   {	 
+      printf("Debug getcommand : %s\n",temp);
+      getargs(temp,command[i]);
+      i++;
+
+      temp = strtok(NULL,s);
+   }
+
 }
 
 void writehistory(char *buff, char *history_file_path) {
