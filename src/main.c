@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
 
    char     *home;
    char     *history_file_path;
+   int	    *tabArgs;
    int      history_file_p;
    int	    npipe;
 
@@ -62,6 +63,7 @@ int main(int argc, char *argv[]) {
    login = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
+   tabArgs = (int*) malloc(BUFF*sizeof(int));
 
 
    gethostname(host, BUFF);
@@ -109,11 +111,18 @@ int main(int argc, char *argv[]) {
       }
       
       npipe = getnpipe(buff);
-      printf("DEBUG : nbPipe = %d",npipe);
-      getcommand(buff,command);
+      printf("\nDEBUG : nbPipe = %d",npipe);
+      getcommand(buff,command,tabArgs);
+      
+      i=0;
+      while(i < npipe +2)
+      {
+	 printf("tabArgsMain[%d] : %d", i, tabArgs[i]);
+	 i++;
+      }
 
       if(npipe > 0){
-	 execPipe(command, npipe, nargs, history_file_path, dir);
+	 execPipe(command, npipe, tabArgs, history_file_path, dir);
 	 continue;
       }
       else

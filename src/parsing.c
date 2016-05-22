@@ -72,7 +72,7 @@ int getnpipe(char *buff){
    return npipe;
 }
 
-void getcommand(char *buff, char ***command){
+void getcommand(char *buff, char ***command, int *tabArgs){
    
    int i=0;
    const char s[2] = "|";
@@ -82,13 +82,14 @@ void getcommand(char *buff, char ***command){
 
    while(temp != NULL)
    {	 
-      printf("Debug getcommand : %s\n",temp);
+      printf("\nDebug getcommand : %s\n",temp);
+      tabArgs[i]=getnargs(temp);
+      printf("nbArgs[%d] = %d",i,tabArgs[i]);
       getargs(temp,command[i]);
       i++;
 
       temp = strtok(NULL,s);
    }
-
 }
 
 void writehistory(char *buff, char *history_file_path) {
