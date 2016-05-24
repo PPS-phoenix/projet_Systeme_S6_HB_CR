@@ -1,6 +1,7 @@
 #ifndef _PARSING_H_
 #define _PARSING_H_
 
+void eraseSpace(char *word);
 /* getnargs : compte le nombre d'argument dans buff, en se basant sur le nombre d'espaces *
  * Entrée : une chaine de caractères buff
  * Sortie : un entier */

@@ -12,10 +12,31 @@
 #include "parsing.h"
 
 
+void eraseSpace(char *word){
+   int i, checkSpace = 1;
+
+   while(checkSpace)
+   {
+      i=0;
+      checkSpace=0;
+      /* Cas : un espace à la fin de la chaine */
+      while(word[i] != '\0')
+      {
+	 if(word[i] == ' ' && word[i+1] == '\0')
+	 {
+	    checkSpace = 1;
+	    word[i] = word[i+1];
+	 }
+	 i++;
+      }
+   }
+}
+
 int getnargs(char *buff) {
    int i = 0;
    int nargs = 0;
    char c;
+   eraseSpace(buff);
    while((c = buff[i]) == ' ') {
       i++;
    }
@@ -38,10 +59,12 @@ void getargs(char *buff, char **args) {
    int k = 0;
    int j = 0;
    char c;
+   eraseSpace(buff);
    while((c = buff[i]) == ' ') {
       i++;
    }
-   while((c = buff[i]) != '\0') {
+   while((c = buff[i]) != '\0')
+   {
       if(c == ' ') {
          k = 0;
          while((c = buff[i]) == ' ') {
@@ -52,7 +75,8 @@ void getargs(char *buff, char **args) {
       else {
          args[j][k] = buff[i];
          args[j][k+1] = '\0';
-         k++;
+	 eraseSpace(args[j]);
+	 k++;
          i++;
       }
    }
@@ -82,12 +106,9 @@ void getcommand(char *buff, char ***command, int *tabArgs){
 
    while(temp != NULL)
    {	 
-      printf("\nDebug getcommand : %s\n",temp);
       tabArgs[i]=getnargs(temp);
-      printf("nbArgs[%d] = %d",i,tabArgs[i]);
       getargs(temp,command[i]);
       i++;
-
       temp = strtok(NULL,s);
    }
 }

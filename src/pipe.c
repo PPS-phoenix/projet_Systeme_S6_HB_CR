@@ -1,100 +1,167 @@
-#define _GNU_SOURCE
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
-
 #include "pipe.h"
-#include "execute.h"
-#include "parsing.h"
-
 
 void execPipe(char ***command, int npipe, int *tabArgs, char *history_file_path, char* dir ){
 
-   int pipes[npipe*2], j = 1, i = 0, k;
+   int pipes[npipe*2];
+   int j = 0, i = 0, k = 0;
+   int status, stdOut;
+   pid_t pid;
+   int      npaths;
+   char     *path;
+   char     **paths_exe;
+   char     **paths;	
+
+
+   stdOut = dup(1);
+
    pipe(pipes);
    if(npipe > 2)
    {
       for(i=1 ; i < npipe ; i++)  
       {
-	 pipe(pipes+ (i*2)); 
+	 if(pipe(pipes + (i*2)) < 0)
+	 {
+	    perror("error while piping");
+	    exit(EXIT_FAILURE);
+	 }
       }  
    }
    
-      i=1;
-      /* premiere commande, avant le premier pipe*/
-      if((dup2(pipes[i], 1)) < 0)
+      
+   for(i = 0 ; i < npipe+1 ; i=i+1)
+   {
+
+      pid=fork();
+      if(pid == 0)
       {
-	 perror("first dup2 failed");
-	 exit(EXIT_FAILURE);	 
-      }
-   
-      execute(command[0],tabArgs[0],history_file_path, dir);
-
-   
-      /* On ferme tous les pipes 
-      * for(k=0; k < (npipe*2) ; k++)
-      * {
-      *	  close(pipes[k]);
-      * }
-      */
-
-      for(i = 1 ; i < (npipe*2) ; i=i+2)
-      { 
-	    /* derniere commande */
-	    /* on ne fait que lire sur la commande précédente */
-	    if(i == ((npipe*2)-1))
+	 if(i < npipe)
+	 {
+	    if(dup2(pipes[(i*2) +1],1) == -1)
 	    {
-	       printf("i du last pipe : %d",i);
-	       if((dup2(pipes[i-1],0) == -1))
-	       {
-		  perror("last dup2 failed");
-		  exit(EXIT_FAILURE);
-	       }
-
-	       execute(command[j],tabArgs[j],history_file_path, dir);
-	    
-
-	       /* On ferme tous les pipes 
-	       * for(k=0; k < (npipe*2) ; k++)
-	       * {
-	       * close(pipes[k]);
-	       * }
-	       */
+	       perror("read - dup2 failed");
+	       exit(EXIT_FAILURE);
 	    }
-	    else
+	 }
+
+	 if(i != 0)
+	 {
+	    if(dup2(pipes[(i*2) -2],0) == -1)
 	    {
-	       /* entre la premiere et dernière commande */
-	       /* on lit sur la précédente et écrit sur la suivante */
-	       if((dup2(pipes[i-1],0)) == -1)
-	       {
-		  perror("read - je dois pas etre ici pour un pipe dup2 failed");
-		  exit(EXIT_FAILURE);
-	       }
-
-
-	       if((dup2(pipes[i+2],1)) == -1)
-	       {
-		  perror("write - je ne dois pas etre ici dup2 failed");
-		  exit(EXIT_FAILURE);
-	       }
-
-
-	       execute(command[j],tabArgs[j],history_file_path, dir);
-
-	       /* On ferme tous les pipes */
-	       for(k=0; k < (npipe*2) ; k++)
-	       {
-		  close(pipes[k]);
-	       }
+	       perror("write - dup2 failed");
+	       exit(EXIT_FAILURE);
 	    }
-	 j++;
+	 }
+	 
+	 for(k=0; k < (npipe*2) ; k++)
+	 {
+	    close(pipes[k]);
+	 }
+            
+      /* Ici on execute la commande */
+   
+      /* gestion de CD */
+      if(!strcmp(command[i][0],"cd")){
+         getcwd(dir, PATH_SIZE); /* On met à jour le répertoire courant à afficher */
+	 exit(EXIT_SUCCESS);
       }
+     
+
+      /* fonction exit */
+      else if(!strcmp(command[i][0], "exit")) {
+         exit(0);
+      }
+
+            
+      /* gestion de history */
+      else if(!strcmp(command[i][0], "history")) {
+	 int c = 0;
+	 FILE *history_file_d;
+	 char     *car;
+	 car = (char*) malloc(BUFF);
+
+	 history_file_d = fopen(history_file_path , "r");
+	 while(fgets(car, BUFF, history_file_d)) {
+	    c++;
+	    printf("%4d    %s", c, car);
+	 }
+
+	 fclose(history_file_d);
+	 exit(EXIT_SUCCESS);
+      }
+      
+      else if(!strcmp(command[i][0], "copy")) {
+	 printf("Copy TD1\n");
+	 exit(EXIT_SUCCESS);
+      }
+      
+
+      /* fonction cat */
+      else if(!strcmp(command[i][0], "cat")) {
+	 cat(command[j],tabArgs[j]);
+	 exit(EXIT_SUCCESS);
+      }
+
+      /* Gestion de touch */
+      else if(!strcmp(command[i][0], "touch")) {
+	 touch(command[j],tabArgs[j]);
+	 exit(EXIT_SUCCESS);
+      }
+
+      /* Gestion du PATH */
+	   
+      else
+      {
+	 path = (char*) malloc(BUFF);
+	 strcpy(path, getenv("PATH"));
+
+	 npaths = getnpaths(path);
+
+	 paths = (char**) malloc((npaths+1)*sizeof(char*));
+	 for(k = 0; k < npaths+1; k++) paths[k] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+	 getpaths(path, paths);
+	 
+	 paths_exe = (char**) malloc((npaths+1)*sizeof(char*));
+	 for(k = 0; k < npaths+1; k++) paths_exe[k] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+	 getexepaths(command[i][0], paths_exe, paths, npaths);
+
+	 for(k = 0; k < npaths; k++) {
+	    if (execv(paths_exe[k], command[i])) {
+	    }
+	 }
+
+	 free(path);
+	 for(k = 0; k < npaths+1; k++) free(paths[k]);
+	 free(paths);
+
+
+	 for(k = 0; k < npaths+1; k++) free(paths_exe[k]);
+	 free(paths_exe);
+
+	 exit(EXIT_SUCCESS);
+      }
+      }
+      else if(pid < 0)
+      {
+	 printf("\nErreur process.\n");
+	 exit(EXIT_FAILURE);
+      }
+
+   }
+
+      
+
+   /* On ferme tous les pipes */
+   for(k=0; k < (npipe*2) ; k++)
+   {
+      close(pipes[k]);
+   }
+
+   for(k = 0; k < npipe +1 ; k++)
+   {
+      wait(&status);
+   }
+
+
+   dup2(stdOut,1);
+   close(stdOut);
 }

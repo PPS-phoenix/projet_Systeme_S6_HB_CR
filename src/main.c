@@ -95,7 +95,8 @@ int main(int argc, char *argv[]) {
       /* On alloue l'espace pour le tableau d'arguments et on les récupère */
       args = (char**) malloc((nargs+1)*sizeof(char*));
       for(i = 0; i < nargs+1; i++) args[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
-      args[1][0] = 0;
+
+
       getargs(buff, args);
       args[nargs] = NULL;
 
@@ -111,13 +112,13 @@ int main(int argc, char *argv[]) {
       }
       
       npipe = getnpipe(buff);
-      printf("\nDEBUG : nbPipe = %d",npipe);
+      printf("nbPipe = %d\n",npipe);
       getcommand(buff,command,tabArgs);
       
       i=0;
-      while(i < npipe +2)
+      while(i < npipe +1)
       {
-	 printf("tabArgsMain[%d] : %d", i, tabArgs[i]);
+	 printf("NB_ARGS __ tabArgsMain[%d] : %d\n", i, tabArgs[i]);
 	 i++;
       }
 
@@ -137,6 +138,18 @@ int main(int argc, char *argv[]) {
       for(i = 0; i < nargs+1; i++) free(args[i]);
       free(args);
       free(buff);
+      free(tabArgs);
+
+      for(i=0 ; i < nargs ;  i++)
+      {
+	 for(j = 0;  j < nargs  ; j++)
+	 {
+	    free(command[i][j]);
+	 }
+	 free(command[i]);
+      }
+      
+      tabArgs = (int*) malloc(BUFF*sizeof(int));
       buff = (char*) malloc (BUFF);
    }
    return -1;
