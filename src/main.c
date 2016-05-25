@@ -15,6 +15,8 @@
 #include <utime.h>
 #include "parsing.h"
 #include "pipe.h"
+#include "find.h"
+#include "cp.h"
 
 
 #if defined(__APPLE__)
@@ -48,11 +50,9 @@ int main(int argc, char *argv[]) {
    char     *login;  /* nom d'utilisateur */
    char     *home;
    char     *car;
-   char     *temp;
    char     *history_file_path;
    int      *tabArgs;
    int      history_file_p;
-   int      nbuff_parts;
    int      npipes;
    int      i, j, c;
    int      nhistory;

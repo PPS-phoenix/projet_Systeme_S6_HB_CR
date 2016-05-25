@@ -122,14 +122,3 @@ void copyAll(char source[],char dest[])
         }
     }
 }
-
-int main(int argc,char *argv[]){
-
-	if(argc<=2)
-	{	
-		printf("\n\n\n2 argmuments minimum, veuillez relancer.\n\n\n");
-	}
-
-	copyAll(argv[1],argv[2]);
-	return 0;
-}

@@ -16,8 +16,10 @@
 #include "parsing.h"
 #include "cat.h"
 #include "touch.h"
+#include "find.h"
+#include "cp.h"
 
-#define BUFF 1024 
+#define BUFF 1024
 #define PATH_SIZE 1024
 #define MAX_ARGS_SIZE  512
 
