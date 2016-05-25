@@ -40,21 +40,3 @@ int checkString(char *str);
 void copyAll(char source[],char dest[]);
 
 #endif
-
-
-if(strcmp(args[0],"cp") || strcmp (args[0],"copy"))
-{
-   if(nargs ==  3)
-   {
-      copyAll(args[1],args[2]);
-   }
-   else
-   {
-      printf("Mauvais arguments.\n");
-      exit(EXIT_FAILURE);
-   }
-
-
-
-
-}

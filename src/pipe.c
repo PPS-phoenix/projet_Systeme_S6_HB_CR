@@ -1,98 +1,137 @@
-#define _GNU_SOURCE
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
-
 #include "pipe.h"
-#include "execute.h"
 
+void execPipe(char *buff, int npipes, char *history_file_path, char *dir) {
+   int      pipes[npipes*2];
+   int      i, j, c;
+   int      npaths;
+   int      nargs;
+   int      status;
+   pid_t    pid;
+   char     *car;
+   char		*current;
+   char     **args;
+   char     *path;
+   char     **paths_exe;
+   char     **paths;
+   char     **cmds;
+   FILE     *history_file_d;
 
-void execPipe(char ***command, int npipe, int nargs, char *history_file_path, char* dir ){
+   car = (char*) malloc(BUFF);
+   current = (char*) malloc(2048*sizeof(char));
+   getcwd(current,2048);
+   cmds = (char**) malloc((npipes+1)*sizeof(char*));
+   for(i = 0; i <= npipes; i++) cmds[i] = (char*) malloc(BUFF*sizeof(char));
+   getcmds(buff, cmds);
 
-   int pipes[npipe], j=0, i = 0, k;
-   pipe(pipes);
-   if(npipe > 2)
-   {
-      for(i=1 ; i < npipe ; i++)  
-      {
-	 pipe(pipes+ (i*2)); 
-      }  
+   for(i = 0; i <= ((npipes*2)-2); i+=2) {
+      pipe(pipes + i);
    }
 
-   i=1;
-   /* premiere commande, avant le premier pipe*/
-   if((dup2(pipes[i], 1)) < 0)
-   {
-      perror("first dup2 failed");
-      exit(EXIT_FAILURE);	 
+   for(i = 0; i <= npipes; i++) {
+      if((pid = fork()) == 0) {
+         if(i == 0) {
+            dup2(pipes[1], 1);
+         }
+         else if(i == npipes) {
+            dup2(pipes[(i*2)-2], 0);
+         }
+         else {
+            dup2(pipes[(i*2)-2], 0);
+            dup2(pipes[(i*2)+1], 1);
+         }
+
+         for(j = 0; j < npipes*2; j++) {
+            close(pipes[j]);
+         }
+
+         nargs = getnargs(cmds[i]); /* On compte le nombre d'arguments dans la commande entrée */
+         args = (char**) malloc((nargs+1)*sizeof(char*)); /* On alloue l'espace pour le tableau d'arguments et on les récupère */
+         for(j = 0; j < nargs+1; j++) args[j] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+
+         getargs(cmds[i], args);
+         args[nargs] = NULL;
+
+         if(!strcmp(args[0], "history")) {
+            c = 0;
+            history_file_d = fopen(history_file_path , "r");
+            while(fgets(car, BUFF, history_file_d)) {
+               c++;
+               printf("%4d    %s", c, car);
+            }
+            fclose(history_file_d);
+            exit(0);
+         }
+
+         if(!strcmp(args[0], "cat")) {
+            cat(args,nargs);
+            exit(0);
+         }
+
+         if(!strcmp(args[0], "touch")) {
+            touch(args,nargs);
+            exit(0);
+         }
+
+         if(strcmp(args[0], "copy") == 0 || strcmp(args[0],"cp") == 0) {
+			if(nargs == 3)
+			{
+				copyAll(args[1],args[2]);
+			}
+			else
+			{
+				printf("Mauvais arguments.\n");
+				exit(EXIT_FAILURE);
+			}
+			exit(0);
+         }
+         
+         if(!strcmp(args[0],"find"))
+         {
+			 if(nargs > 2)
+			 {
+				 printf("Mauvais arguments.\n");
+				 exit(EXIT_FAILURE);
+			 }
+			 else
+			 {
+				 if(nargs == 2 && strcmp(args[1]".") != 0)
+				 {
+					find(args[1],".");
+				 }
+				 else
+				 {
+					 find(current,".");
+				 } 
+				 
+			 }
+
+         /* Gestion du PATH */
+         path = (char*) malloc(BUFF);
+         strcpy(path, getenv("PATH"));
+
+         npaths = getnpaths(path);
+
+         paths = (char**) malloc((npaths+1)*sizeof(char*));
+         for(j = 0; j < npaths+1; j++) paths[j] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+         getpaths(path, paths);
+
+         paths_exe = (char**) malloc((npaths+1)*sizeof(char*));
+         for(j = 0; j < npaths+1; j++) paths_exe[j] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+         getexepaths(args[0], paths_exe, paths, npaths);
+
+         for(j = 0; j < npaths; j++) {
+            execv(paths_exe[j], args);
+         }
+
+         exit(0);
+      }
    }
-   
-   execute(command[j],nargs,history_file_path, dir);
-   j++;
-   printf("\n\n PREMIERE COMMANDE EXECUTE.\n");
 
-   /* On ferme tous les pipes */
-   for(k=0; k < (npipe*2) ; k++)
-   {
-      close(pipes[k]);
+   for(j = 0; j < npipes*2; j++) {
+      close(pipes[j]);
    }
 
-   for(i = 1 ; i < (npipe*2) ; i=i+2)
-   { 
-	 /* derniere commande */
-	 /* on ne fait que lire sur la commande précédente */
-	 if(i == ((npipe*2)-1))
-	 {
-	    printf("i du last pipe : %d",i);
-	    if((dup2(pipes[i-1],0) == -1))
-	    {
-	       perror("last dup2 failed");
-	       exit(EXIT_FAILURE);
-	    }
-
-	    execute(command[j],nargs,history_file_path, dir);
-	    
-
-	    /* On ferme tous les pipes */
-	    for(k=0; k < (npipe*2) ; k++)
-	    {
-	       close(pipes[k]);
-	    }
-	 }
-	 else
-	 {
-	    /* entre la premiere et dernière commande */
-	    /* on lit sur la précédente et écrit sur la suivante */
-	    if((dup2(pipes[i-1],0)) == -1)
-	    {
-	       perror("read - je dois pas etre ici pour un pipe dup2 failed");
-	       exit(EXIT_FAILURE);
-	    }
-
-
-	    if((dup2(pipes[i+2],1)) == -1)
-	    {
-	       perror("write - je ne dois pas etre ici dup2 failed");
-	       exit(EXIT_FAILURE);
-	    }
-
-
-	    execute(command[j],nargs,history_file_path, dir);
-
-	    /* On ferme tous les pipes */
-	    for(j=0; j < (npipe*2) ; j++)
-	    {
-	       close(pipes[i]);
-	    }
-	 }
-      j++;
+   for(j = 0; j <= npipes; j++) {
+      wait(&status);
    }
 }

@@ -18,7 +18,7 @@
 #define MAX_PATH 1024
 
 /* Fonction : find
- * Entrées : 
+ * Entrées : le chemin du répertoire où find doit etre executer
  * Sortie : ---
  * Reproduit find sans arguments, affiche tous les fichiers contenus dans le répertoire
  */
