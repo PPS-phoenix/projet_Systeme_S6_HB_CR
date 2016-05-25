@@ -3,7 +3,7 @@ GCC=gcc
 SRC=src
 
 all:
-			$(GCC) -o shell $(FLAGS) $(SRC)/main.c $ $(SRC)/parsing.c $(SRC)/pipe.c $(SRC)/execute.c $(SRC)/touch.c $(SRC)/cat.c $(SRC)/cp.c
+			$(GCC) -o shell $(FLAGS) $(SRC)/main.c $ $(SRC)/parsing.c $(SRC)/pipe.c $(SRC)/touch.c $(SRC)/cat.c $(SRC)/cp.c
 
 clean:
 			rm shell
