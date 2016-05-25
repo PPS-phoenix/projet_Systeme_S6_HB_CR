@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
    char     *home;
    char     *car;
    char     *history_file_path;
-   int      *tabArgs;
    int      history_file_p;
    int      npipes;
    int      i, j, c;
@@ -69,7 +68,6 @@ int main(int argc, char *argv[]) {
    login = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
-   tabArgs = (int*) malloc(BUFF*sizeof(int));
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());

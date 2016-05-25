@@ -1,4 +1,4 @@
-FLAGS = -ansi -Wall -pedantic -std=c99
+FLAGS = -ansi -Wall -pedantic -std=c99 -lm
 GCC=gcc
 SRC=src
 
