@@ -124,6 +124,8 @@ void execPipe(char *buff, int npipes, char *history_file_path, char *dir) {
             execv(paths_exe[j], args);
          }
 
+         printf("-shell: %s: command not found\n", args[0]);
+
          exit(0);
       }
    }
