@@ -8,13 +8,13 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #include <fcntl.h>
 #include <time.h>
 #include <utime.h>
 #include "parsing.h"
 #include "pipe.h"
-#include "execute.h"
 
 
 #if defined(__APPLE__)
@@ -46,23 +46,38 @@ int main(int argc, char *argv[]) {
    char     **args;  /* tableau d'arguments */
    char     *host;   /* nom d'hôte de la machine */
    char     *login;  /* nom d'utilisateur */
-   char	    ***command;
-
    char     *home;
+   char     *car;
+   char     *temp;
    char     *history_file_path;
+   char     **buff_parts;
+   char     *temp_buff;
+   int      *tabArgs;
    int      history_file_p;
-   int	    npipe;
+   int      nbuff_parts;
+   int      npipes;
+   int      i, j, c;
+   int      nhistory;
+   int      foundhistory;
+   int      fdin;
+   int      fdout;
+   FILE     *history_file_d;
 
-   int      i,j;
+   int      o_stdin;
+   int      o_stdout;
 
-   
    buff = (char*) malloc(BUFF);
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
+   car = (char*) malloc(BUFF);
+   temp_buff = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
+   tabArgs = (int*) malloc(BUFF*sizeof(int));
 
+   buff_parts = (char**) malloc(128*sizeof(char*));
+   for(i = 0; i < 128; i++) buff_parts[i] = (char*) malloc(BUFF*sizeof(char));
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
@@ -75,10 +90,17 @@ int main(int argc, char *argv[]) {
    strcat(history_file_path, HISTORY_FILE);
 
    while(printf("%s%s%s@%s%s%s%s%s:%s%s%s>%s ", MAGE, login, YELO, RESET, MAGE, host, MAGE, WHIT, CYAN, dir, YELO, WHIT), fgets(buff, BUFF, stdin)) {
-      /* Si l'utilisateur n'écrit rien et appuie sur Entrée */
+      o_stdin = dup(0);
+      o_stdout = dup(1);
 
       if(!strcmp(buff, "\n")) {
          continue;
+      }
+
+      while(buff[0] == ' ') {
+         for(i = 0; i < strlen(buff); i++) {
+            buff[i] = buff[i+1];
+         }
       }
 
       /* gestion de l'historique */
@@ -86,49 +108,87 @@ int main(int argc, char *argv[]) {
       close(history_file_p);
       writehistory(buff, history_file_path);
 
-      /* On supprime le retour à la ligne du buffer */
-      buff[strlen(buff)-1] = '\0';
-      /* On compte le nombre d'arguments dans la commande entrée */
-      nargs = getnargs(buff);
-      /* On alloue l'espace pour le tableau d'arguments et on les récupère */
-      args = (char**) malloc((nargs+1)*sizeof(char*));
-      for(i = 0; i < nargs+1; i++) args[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
-      args[1][0] = 0;
-      getargs(buff, args);
-      args[nargs] = NULL;
+      buff[strlen(buff)-1] = '\0'; /* On supprime le retour à la ligne du buffer */
 
-      /* Allocation mémoire du tableau commande */
-      command = (char***) malloc((nargs)*sizeof(char**));
-      for(i=0 ; i < nargs ;  i++)
-      {
-	 command[i] = (char**) malloc (BUFF*sizeof(char*));
-	 for(j = 0;  j < nargs  ; j++)
-	 {
-	    command[i][j] = (char*) malloc(BUFF*sizeof(char));
-	 }
+      while(buff[i] != '\0') {
+         if(buff[i] == '>') {
+            
+         }
       }
-      
-      npipe = getnpipe(buff);
-      printf("DEBUG : nbPipe = %d",npipe);
-      getcommand(buff,command);
 
-      if(npipe > 0){
-	 execPipe(command, npipe, nargs, history_file_path, dir);
-	 continue;
-      }
-      else
-      {
-	 if(execute(args,nargs,history_file_path, dir)){
-	    continue;
-	 }
+      for(i = 0; i < nbuff_parts; i++) {
+         fdout = open(buff_parts[i], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+         if(fdout >= 0) {
+            if(dup2(fdout, 1) < 0) {
+               perror("lol");
+            }
+            close(fdout);
+         }
       }
 
 
-      /* On libère l'espace occupé par les arguments et le buffer */
-      for(i = 0; i < nargs+1; i++) free(args[i]);
-      free(args);
-      free(buff);
-      buff = (char*) malloc (BUFF);
+      npipes = getnpipes(buff);
+
+      if(npipes == 0) {
+         nhistory = 0;
+         foundhistory = 0;
+         if(buff[0] == '!') {
+            j = 0;
+            for(i = strlen(buff)-1; i > 0; i--) {
+               nhistory += ((int) buff[i]-'0')*pow(10, j);
+               j++;
+            }
+
+            history_file_d = fopen(history_file_path , "r");
+            c = 0;
+            while(fgets(car, BUFF, history_file_d)) {
+               c++;
+               if(c == nhistory) {
+                  strcpy(buff, car);
+                  printf("%s\n", car);
+                  buff[strlen(buff)-1] = '\0';
+                  foundhistory = 1;
+                  break;
+               }
+            }
+            if(!foundhistory) {
+               printf("-shell: !%d: event not found\n", nhistory);
+               continue;
+            }
+         }
+         nargs = getnargs(buff); /* On compte le nombre d'arguments dans la commande entrée */
+         args = (char**) malloc((nargs+1)*sizeof(char*)); /* On alloue l'espace pour le tableau d'arguments et on les récupère */
+         for(i = 0; i < nargs+1; i++) args[i] = (char*) malloc(MAX_ARGS_SIZE*sizeof(char));
+
+         getargs(buff, args);
+         args[nargs] = NULL;
+
+         if(!strcmp(args[0], "cd")) {
+            strcpy(home, getenv("HOME"));
+            if(args[1] == NULL || !strcmp(args[1], "~")) { /* gestion du HOME */
+               chdir(home);
+            }
+            else {
+               chdir(args[1]);
+            }
+            getcwd(dir, PATH_SIZE); /* On met à jour le répertoire courant à afficher */
+            continue;
+         }
+
+         if(!strcmp(args[0], "exit")) {
+            exit(0);
+         }
+
+         execPipe(buff, npipes, history_file_path, dir);
+      }
+      else {
+         execPipe(buff, npipes, history_file_path, dir);
+      }
+
+      dup2(o_stdin, 0);
+      close(o_stdin);
+      dup2(o_stdout, 1);
+      close(o_stdout);
    }
    return -1;
 }

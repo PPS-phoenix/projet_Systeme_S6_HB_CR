@@ -12,10 +12,27 @@
 #include "parsing.h"
 
 
+void eraseSpace(char *word){
+   int i, checkSpace = 1;
+
+   while(checkSpace) {
+      i=0;
+      checkSpace=0;
+      while(word[i] != '\0') {
+         if(word[i] == ' ' && word[i+1] == '\0') {
+            checkSpace = 1;
+            word[i] = word[i+1];
+         }
+         i++;
+      }
+   }
+}
+
 int getnargs(char *buff) {
    int i = 0;
    int nargs = 0;
    char c;
+   eraseSpace(buff);
    while((c = buff[i]) == ' ') {
       i++;
    }
@@ -38,10 +55,12 @@ void getargs(char *buff, char **args) {
    int k = 0;
    int j = 0;
    char c;
+   eraseSpace(buff);
    while((c = buff[i]) == ' ') {
       i++;
    }
-   while((c = buff[i]) != '\0') {
+   while((c = buff[i]) != '\0')
+   {
       if(c == ' ') {
          k = 0;
          while((c = buff[i]) == ' ') {
@@ -52,43 +71,34 @@ void getargs(char *buff, char **args) {
       else {
          args[j][k] = buff[i];
          args[j][k+1] = '\0';
+         eraseSpace(args[j]);
          k++;
          i++;
       }
    }
 }
 
-int getnpipe(char *buff){
-   
+int getnpipes(char *buff) {
    int  npipe=0, i=0;
-   while(buff[i] != '\0') 
-   {
-      if(buff[i] == '|')
-      {
-	 npipe++;
+   while(buff[i] != '\0') {
+      if(buff[i] == '|') {
+         npipe++;
       }
       i++;
    }
    return npipe;
 }
 
-void getcommand(char *buff, char ***command){
-   
-   int i=0;
-   const char s[2] = "|";
-
+void getcmds(char *buff, char **cmds) {
+   int i = 0;
    char *temp;
-   temp = strtok(buff,s);
 
-   while(temp != NULL)
-   {	 
-      printf("Debug getcommand : %s\n",temp);
-      getargs(temp,command[i]);
+   temp = strtok(buff, "|");
+   while(temp != NULL) {
+      strcpy(cmds[i], temp);
       i++;
-
-      temp = strtok(NULL,s);
+      temp = strtok(NULL, "|");
    }
-
 }
 
 void writehistory(char *buff, char *history_file_path) {
@@ -139,16 +149,11 @@ void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths) {
    }
 }
 
-void replacechar(char *src, char *dst, char c, char r) {
-   int i;
-
-   for(i = 0; i < strlen(src) ; i++) {
-      if(src[i] == c) {
-         dst[i] = r;
-      }
-      else {
-         dst[i] = src[i];
-      }
-   }
+void removechar(char* str, char c) {
+    char *pr = str, *pw = str;
+    while (*pr) {
+        *pw = *pr++;
+        pw += (*pw != c);
+    }
+    *pw = '\0';
 }
-

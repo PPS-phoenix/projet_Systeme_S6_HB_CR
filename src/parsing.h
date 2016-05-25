@@ -1,6 +1,7 @@
 #ifndef _PARSING_H_
 #define _PARSING_H_
 
+void eraseSpace(char *word);
 /* getnargs : compte le nombre d'argument dans buff, en se basant sur le nombre d'espaces *
  * Entrée : une chaine de caractères buff
  * Sortie : un entier */
@@ -18,7 +19,9 @@ int getnpaths(char *path);
 
 void getexepaths(char *cmd, char **paths_exe, char **paths, int npaths);
 
-int getnpipe(char *buff);
+int getnpipes(char *buff);
 
-void getcommand(char *buff, char ***command);
+void getcmds(char *buff, char **cmds);
+
+void removechar(char* str, char c);
 #endif
