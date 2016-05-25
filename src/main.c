@@ -50,8 +50,6 @@ int main(int argc, char *argv[]) {
    char     *car;
    char     *temp;
    char     *history_file_path;
-   char     **buff_parts;
-   char     *temp_buff;
    int      *tabArgs;
    int      history_file_p;
    int      nbuff_parts;
@@ -59,8 +57,6 @@ int main(int argc, char *argv[]) {
    int      i, j, c;
    int      nhistory;
    int      foundhistory;
-   int      fdin;
-   int      fdout;
    FILE     *history_file_d;
 
    int      o_stdin;
@@ -70,14 +66,10 @@ int main(int argc, char *argv[]) {
    dir = (char*) malloc(PATH_SIZE);
    host = (char*) malloc(BUFF);
    car = (char*) malloc(BUFF);
-   temp_buff = (char*) malloc(BUFF);
    login = (char*) malloc(BUFF);
    home = (char*) malloc(BUFF);
    history_file_path = (char*) malloc(BUFF);
    tabArgs = (int*) malloc(BUFF*sizeof(int));
-
-   buff_parts = (char**) malloc(128*sizeof(char*));
-   for(i = 0; i < 128; i++) buff_parts[i] = (char*) malloc(BUFF*sizeof(char));
 
    gethostname(host, BUFF);
    strcpy(login, getlogin());
@@ -97,12 +89,6 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
-      while(buff[0] == ' ') {
-         for(i = 0; i < strlen(buff); i++) {
-            buff[i] = buff[i+1];
-         }
-      }
-
       /* gestion de l'historique */
       history_file_p = open(history_file_path, O_CREAT, 0600);
       close(history_file_p);
@@ -110,22 +96,11 @@ int main(int argc, char *argv[]) {
 
       buff[strlen(buff)-1] = '\0'; /* On supprime le retour à la ligne du buffer */
 
-      while(buff[i] != '\0') {
-         if(buff[i] == '>') {
-            
+      while(buff[0] == ' ') {
+         for(i = 0; i < strlen(buff); i++) {
+            buff[i] = buff[i+1];
          }
       }
-
-      for(i = 0; i < nbuff_parts; i++) {
-         fdout = open(buff_parts[i], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
-         if(fdout >= 0) {
-            if(dup2(fdout, 1) < 0) {
-               perror("lol");
-            }
-            close(fdout);
-         }
-      }
-
 
       npipes = getnpipes(buff);
 

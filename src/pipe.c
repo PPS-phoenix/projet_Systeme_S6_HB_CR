@@ -84,7 +84,7 @@ void execPipe(char *buff, int npipes, char *history_file_path, char *dir) {
 			}
 			exit(0);
          }
-         
+
          if(!strcmp(args[0],"find"))
          {
 			 if(nargs > 2)
@@ -94,16 +94,17 @@ void execPipe(char *buff, int npipes, char *history_file_path, char *dir) {
 			 }
 			 else
 			 {
-				 if(nargs == 2 && strcmp(args[1]".") != 0)
+				 if(nargs == 2 && strcmp(args[1], ".") != 0)
 				 {
 					find(args[1],".");
 				 }
 				 else
 				 {
 					 find(current,".");
-				 } 
-				 
+				 }
+
 			 }
+       }
 
          /* Gestion du PATH */
          path = (char*) malloc(BUFF);
