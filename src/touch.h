@@ -15,7 +15,7 @@
 
 
 /* Fonction : touch
- * Entrées : une commande (chaine d'args), le nombre d'arguments 
+ * Entrées : une commande (chaine d'args) et le nombre d'arguments 
  * Sortie : ---
  * Reproduit la commande touch avec l'option -m
  */

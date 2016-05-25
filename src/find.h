@@ -17,10 +17,10 @@
 
 #define MAX_PATH 1024
 
-/* find et find . : affiche tout ce qui est contenu dans le répertoire courant 
- * find fichier : affiche le fichier si il est dans le répertoire courante
- * find dossier : affiche tout ce qui est dans le dossier 
- * aucune option n'est traitee
+/* Fonction : find
+ * Entrées : 
+ * Sortie : ---
+ * Reproduit find sans arguments, affiche tous les fichiers contenus dans le répertoire
  */
 
 void find(char *path, char *parent);

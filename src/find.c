@@ -27,19 +27,7 @@ void find(char * path, char *parent)
       temp = malloc((strlen(path) + strlen(fichier->d_name) + 2)*sizeof(char));
      
       sprintf(temp,"%s%s%s",path,"/",fichier->d_name);
-      /* il faut concatener path + repertoire que l'on vient d'ouvrir 
-      if( path[strlen(path)-1] == '/' )
-      {
-	 strncat(temp,path,strlen(path));
-	 strncat(temp,fichier->d_name,strlen(fichier->d_name));
-      }
-      else
-      {
-	 strncat(temp,path,strlen(path));
-	 strncat(temp,"/",1);
-	 strncat(temp,fichier->d_name,strlen(fichier->d_name));
-      }*/
-
+    
       /* on passe type que l'on vient de créer dans stat() pour récuperer les infos du chemin courant */
       if(stat(temp,&type) < 0)
       {
@@ -54,9 +42,8 @@ void find(char * path, char *parent)
 	 {
 	    /* Affichage */
 	    printf("%s/%s\n",parent,fichier->d_name);
-	    /* printf("%s\n",temp); */
 
-
+	    /* On concatene dans temp */
 	    if( parent[strlen(parent)-1] == '/' )
 	    {
 	       strcat(tempparent,parent);
@@ -91,18 +78,4 @@ void find(char * path, char *parent)
       exit(EXIT_FAILURE);
    }
    free(tempparent);
-}
-
-
-int main(int argc, char *argv[]){
-  
-   char * current;
-   current = malloc(2048*sizeof(char));
-   getcwd(current,2048);
-
-   find("/home/cedrick/Documents/projet/",".");
-
-   free(current);
-
-   return 0;
 }

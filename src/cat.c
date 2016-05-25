@@ -1,14 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
 #include "cat.h"
-#define BUFF 1024
 
 void cat(char **args, int nargs)
 {

@@ -1,16 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
-#include <time.h>
-#include <utime.h>
 #include "touch.h"
-
 
 
 void touch(char **args, int nargs)
@@ -78,10 +66,9 @@ void touch(char **args, int nargs)
 	       file = open(args[j], O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
 	       if(file != -1)
 	       {
-		  printf("Le fichier %s a ete cree.\n",args[j]);
+		  printf("Le fichier %s a ete ouvert.\n",args[j]);
 	       }
 	       close(file);
-
 	       
 	       /* on récupère le temps courant */
 	       buf.modtime = time(NULL);
